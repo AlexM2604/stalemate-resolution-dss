@@ -6,8 +6,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-f = open('save_data.json')
-final_weights = json.load(f)
+#f = open('saved_data.json')
+#final_weights = json.load(f)
 df_not_used,final_pref = get_SODO_stuff()
 objective_names = obj_names()
 
@@ -58,7 +58,7 @@ def objective(variables):
     # aggregate preference scores and return this to the GA
     return final_weights, pref_all_p
 
-def preferendus_go():
+def preferendus_go(final_pref,objective,bounds,cons_ga):
 
     # specify the number of runs of the optimization
     n_runs = 5
@@ -81,7 +81,7 @@ def preferendus_go():
     pref_loop = list()
     pref_long_obj = list()
     pref_obj = list()
-    ga = GeneticAlgorithm(objective=objective, constraints=cons_ga, bounds=bounds, options=options,verbose = False)  # initialize GA
+    ga = GeneticAlgorithm(objective=objective, constraints=cons_ga, bounds=bounds, options=options)  # initialize GA
 
     # run the GA
     for i in range(n_runs):

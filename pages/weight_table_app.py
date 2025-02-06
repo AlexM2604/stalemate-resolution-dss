@@ -13,28 +13,38 @@ save_file = "saved_data.json"
 objective_names = obj_names()
 decision_makers = dec_mak()
 
-# Function to load saved data if it exists
 def load_saved_data():
     if os.path.exists(save_file):
         with open(save_file, "r") as file:
             return json.load(file)
     else:
         # Default data if no saved file exists
-        return [
-            {objective: 0 for objective in objective_names}
-            for _ in range(len(decision_makers))
-        ]
+        return [0.0] * (len(objective_names) * len(decision_makers))  # Flat list of zeros
 
 # Load data when the app starts
 initial_data = load_saved_data()
 
-# Updated column and row titles
-columns = ["Row Title"] + objective_names + ["Sum"]
-row_titles = decision_makers
+# Convert flat list to table data format
+def flat_list_to_table_data(flat_list):
+    table_data = []
+    num_objectives = len(objective_names)
+    for i, dm in enumerate(decision_makers):
+        start_index = i * num_objectives
+        end_index = start_index + num_objectives
+        row_values = flat_list[start_index:end_index]
+        row_dict = {"Row Title": dm, **{obj: val for obj, val in zip(objective_names, row_values)}}
+        table_data.append(row_dict)
+    return table_data
 
-table_data = [
-    {"Row Title": row_titles[i], **initial_data[i]} for i in range(len(row_titles))
-]
+# Convert table data to flat list
+def table_data_to_flat_list(table_data):
+    flat_list = []
+    for row in table_data:
+        flat_list.extend([float(row[obj]) for obj in objective_names])
+    return flat_list
+
+# Initialize table data
+table_data = flat_list_to_table_data(initial_data)
 
 # Dash layout
 tableapp_layout = html.Div([
@@ -46,7 +56,7 @@ tableapp_layout = html.Div([
             {"name": "Row Title", "id": "Row Title", "editable": False}
         ] + [
             {"name": col, "id": col, "editable": True if col != "Sum" else False}
-            for col in columns[1:]
+            for col in objective_names + ["Sum"]
         ],
         data=table_data,
         style_data_conditional=[],
@@ -62,12 +72,3 @@ tableapp_layout = html.Div([
 
     html.Div(id="save_table_output", style={"textAlign": "center", "marginTop": "20px"}),
 ])
-
-
-
-
-'''
-# Run the Dash app
-if __name__ == "__main__":
-    app_table.run_server(debug=True)
-'''
