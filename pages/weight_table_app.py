@@ -4,8 +4,7 @@ from dash import dash_table
 import json
 import os
 from Calc_Sodo import obj_names,dec_mak
-
-
+from dash.exceptions import PreventUpdate
 
 # File to save the table data
 save_file = "saved_data.json"
@@ -72,3 +71,73 @@ tableapp_layout = html.Div([
 
     html.Div(id="save_table_output", style={"textAlign": "center", "marginTop": "20px"}),
 ])
+
+def register_callbacks(app):
+    @app.callback(
+        [Output("editable-table", "data"),
+         Output("editable-table", "style_data_conditional")],
+        [Input("editable-table", "data_previous")],
+        [State("editable-table", "data")],
+    )
+    def update_table(data_previous, data):
+
+        if not dash.callback_context.triggered:
+            raise PreventUpdate
+
+        if data_previous is None:
+            raise dash.exceptions.PreventUpdate
+
+        updated_data = []
+        style_data_conditional = []
+        for row in data:
+            # Calculate the sum for the row
+            try:
+                row_sum = sum(
+                    float(row[col]) for col in objective_names
+                )
+            except ValueError:
+                row_sum = 0
+
+            # Update the "Sum" column
+            row["Sum"] = round(row_sum, 2)
+
+            # Append to updated data
+            updated_data.append(row)
+
+            # Apply conditional formatting to the "Sum" column
+            color = "green" if row_sum == 1 else "red"
+            style_data_conditional.append({
+                "if": {"filter_query": f"{{Row Title}} = '{row['Row Title']}'", "column_id": "Sum"},
+                "color": color,
+                "fontWeight": "bold"
+            })
+
+        return updated_data, style_data_conditional
+
+    # Callback to save the table data as a flat list and persist it to a file
+    @app.callback(
+        Output("save_table_output", "children"),
+        [Input("save_button_table", "n_clicks")],
+        [State("editable-table", "data")],
+    )
+    def save_data(n_clicks, data):
+
+        if not dash.callback_context.triggered:
+            raise PreventUpdate
+
+        if n_clicks is None:
+            raise dash.exceptions.PreventUpdate
+
+        # Convert table data to a flat list of floats
+        flat_list = table_data_to_flat_list(data)
+
+        # Save the flat list to a file
+        with open('saved_data.json', "w") as file:
+            json.dump(flat_list, file)
+
+        return html.Div([
+            html.H4("Saved Data (Flat List):"),
+            html.Pre(str(flat_list))
+        ])
+
+        return
