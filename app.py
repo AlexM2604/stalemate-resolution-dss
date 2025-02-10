@@ -42,16 +42,18 @@ app321.layout = html.Div([
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="current-page", storage_type="memory"),
     html.Div([
-        dcc.Link("Home", href="/"),
+        dcc.Link("Home", href="/", style={'marginRight': '20px', 'textDecoration': 'none'}),
         " | ",
-        dcc.Link("Choice", href="/choice"),
+        dcc.Link("Preference", href="/preference",style={'marginRight': '20px', 'textDecoration': 'none'}),
         " | ",
-        dcc.Link("Table", href="/table"),
+        dcc.Link("Weights", href="/weights",style={'marginRight': '20px', 'textDecoration': 'none'}),
         " | ",
-        dcc.Link("Dashboard", href="/dashboard")
-    ], style={'padding': '10px', 'fontSize': '20px'}),
+        dcc.Link("Dashboard", href="/dashboard",style={'marginRight': '20px', 'textDecoration': 'none'})
+    ], style={'padding': '10px', 'fontSize': '20px', 'textAlign': 'center'}),
 
-    html.Div(id="page-content")  # Content will be loaded here
+    html.Hr(),
+
+    html.Div(id="page-content", style={'margin': '20px'})
 ])
 
 # Callback to switch pages
@@ -60,10 +62,10 @@ app321.layout = html.Div([
     Input("url", "pathname")
 )
 def display_page(pathname):
-    if pathname == "/choice":
-        return app1.preference_choice_layout,"/choice"
-    elif pathname == "/table":
-        return weight_table_app.tableapp_layout,"/table"
+    if pathname == "/preference":
+        return app1.preference_choice_layout,"/preference"
+    elif pathname == "/weights":
+        return weight_table_app.tableapp_layout,"/weights"
     elif pathname == "/dashboard":
         return final_dashboard.final_dashboard_layout,"/dashboard"
     else:

@@ -25,7 +25,11 @@ final_dashboard_layout = html.Div(children=[
                      style={"width": "200px", "display": "inline-block", "marginLeft": "10px"}),
         html.Button("Run", id="run_opt_button",
                 style={"marginTop": "50px", "display": "block", "margin": "auto"}),
-        html.Div(id="opt_run_output", style={"textAlign": "center", "marginTop": "20px"})]),
+        dcc.Loading(  # Adds a spinner while loading
+            id="loading-1",
+            type="circle",  # Choose "default", "dot", or "circle"
+            children=html.Div(id="opt_run_output"),style={'padding': '10px', 'fontSize': '20px', 'textAlign': 'center'}),
+        #html.Div(id="opt_run_output", style={"textAlign": "center", "marginTop": "20px"})]),
 
     html.Div(children='''
 
@@ -58,7 +62,7 @@ final_dashboard_layout = html.Div(children=[
         dcc.Dropdown(objective_names, objective_names[0], id='manual_dropdown', style={'marginTop': '20px'}),
         html.Button('Set Benchmark', id='set_benchmark_button', n_clicks=0,
                     style={'marginLeft': '10px', 'marginTop': '20px'}, ),
-        html.Div(id='manual_benchmark_output', style={'marginTop': 20})])])
+        html.Div(id='manual_benchmark_output', style={'marginTop': 20})])])])
 
 def register_callbacks(app):
 

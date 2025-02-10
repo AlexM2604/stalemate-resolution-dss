@@ -82,7 +82,7 @@ preference_choice_layout = html.Div(children=[
 
     html.Div(children=[
         html.Label('4. Write all previously saved preference curves to a file (permanent save):'),
-        html.Button('Write', id='write_button', n_clicks=0, style={'marginLeft': '10px', 'marginTop': '20px'}, ), \
+        html.Button('Write', id='write_button', n_clicks=0, style={'marginLeft': '10px', 'marginTop': '20px'}, ),
         dcc.Input(id="write_input",
                   type="text",
                   placeholder="File name",
@@ -103,20 +103,22 @@ def register_callbacks(app):
         Input('dropdown_decision_maker', 'value'),
         Input('set_end_button', 'n_clicks'),
         Input('reset_button', 'n_clicks'),
-        State('current-page', 'data'))
-    def update_graph(selected_objective, n_clicks,
-                     dropdown_decision, end_n_clicks, reset_n_clicks,current_page):
+        State('current-page', 'data'),State('manual_obj', 'value'),
+        State('manual_pref', 'value'),State('end_point_1_pref', 'value'),
+        State('end_point_2_pref', 'value'))
 
-        if current_page != "/choice":
+    def update_graph(selected_objective, n_clicks,
+                     dropdown_decision, end_n_clicks, reset_n_clicks,current_page,manual_obj,manual_pref,end1_pref,end2_pref):
+
+        if current_page != "/preference":
             raise PreventUpdate  # Prevent callback if we're not on the "Choice" page
 
-        manual_obj = dash.callback_context.states.get("manual_obj.value")
-        manual_pref = dash.callback_context.states.get("manual_pref.value")
-        end1_pref = dash.callback_context.states.get("end_point_1_pref.value")
-        end2_pref = dash.callback_context.states.get("end_point_2_pref.value")
-
-
+        #manual_obj = dash.callback_context.states.get("manual_obj.value")
+        #manual_pref = dash.callback_context.states.get("manual_pref.value")
+        #end1_pref = dash.callback_context.states.get("end_point_1_pref.value")
+        #end2_pref = dash.callback_context.states.get("end_point_2_pref.value")
         # Get the min and max points based on the selected objective
+
         min_point, max_point = obj_overview.loc[selected_objective]['Min'], obj_overview.loc[selected_objective]['Max']
 
         global fig
@@ -188,15 +190,17 @@ def register_callbacks(app):
     @app.callback(
         Output('save_output', 'children'),
         Input('save_button', 'n_clicks'),
-        State('current-page', 'data'))
+        State('current-page', 'data'),
+        State('dropdown_decision_maker','value'),
+        State('dropdown_objective','value'))
 
-    def save_preference_curve(n_clicks_save,current_page):
+    def save_preference_curve(n_clicks_save,current_page,dropdown_decision_save,dropdown_objective_save):
 
-        if current_page != "/choice":
+        if current_page != "/preference":
             raise PreventUpdate  # Prevent callback if we're not on the "Choice" page
 
-        dropdown_decision_save = dash.callback_context.states.get("dropdown_decision_maker.value")
-        dropdown_objective_save = dash.callback_context.states.get("dropdown_objective.value")
+        #dropdown_decision_save = dash.callback_context.states.get("dropdown_decision_maker.value")
+        #dropdown_objective_save = dash.callback_context.states.get("dropdown_objective.value")
 
         global fig
         global total_preference
@@ -212,14 +216,14 @@ def register_callbacks(app):
     @app.callback(
         Output('reset_output', 'children'),
         Input('reset_button', 'n_clicks'),
-        State('current-page', 'data'))
+        State('current-page', 'data'),State('dropdown_decision_maker','value'),State('dropdown_objective','value'))
 
-    def reset_preference_curve(n_clicks_res,current_page):
-        if current_page != "/choice":
+    def reset_preference_curve(n_clicks_res,current_page,dropdown_decision_res,dropdown_objective_res):
+        if current_page != "/preference":
             raise PreventUpdate  # Prevent callback if we're not on the "Choice"
 
-        dropdown_decision_res = dash.callback_context.states.get("dropdown_decision_maker.value")
-        dropdown_objective_res = dash.callback_context.states.get("dropdown_objective.value")
+        #dropdown_decision_res = dash.callback_context.states.get("dropdown_decision_maker.value")
+        #dropdown_objective_res = dash.callback_context.states.get("dropdown_objective.value")
 
         global total_preference
 
@@ -231,32 +235,33 @@ def register_callbacks(app):
     @app.callback(
         Output('load_output', 'children'),
         Input('load_button', 'n_clicks'),
-        State('current-page', 'data'))
-    def load_preference_curve(n_clicks_load,current_page):
+        State('current-page', 'data'),
+        State('load_dropdown', 'value'))
 
-        if current_page != "/choice":
+    def load_preference_curve(n_clicks_load,current_page,file_name):
+
+        if current_page != "/preference":
             raise PreventUpdate  # Prevent callback if we're not on the "Choice" page
 
-        file_name = dash.callback_context.states.get("load_dropdown.value")
-
         global total_preference
-
-        if n_clicks_load > 0:
+        #file_name = dash.callback_context.states.get("load_dropdown.value")
+        if n_clicks_load > 0 and file_name is not None:
             # total_preference = np.load(direct + file_name, allow_pickle='TRUE').item()
-            total_preference = np.load(file_name, allow_pickle='TRUE').item()
+            total_preference = np.load(file_name, allow_pickle=True).item()
             return f'Preference file {file_name} loaded.'
-        return
+        else:
+            return f'First run, button counter = {n_clicks_load},selected option is {file_name},{current_page}'
 
     @app.callback(
-        [Output('write_output', 'children'),
-         Output('load_dropdown', 'options')],
+        Output('write_output', 'children'),
+         Output('load_dropdown', 'options'),
         Input('write_button', 'n_clicks'),
         State('write_input', 'value'),State('current-page', 'data'))
     def save_file(n_clicks_wr, file_name,current_page):
-
-        if current_page != "/choice":
+        '''
+        if current_page != "/preference":
             raise PreventUpdate  # Prevent callback if we're not on the "Choice" page
-
+        '''
         global total_preference
         global npy_files
 
@@ -266,6 +271,6 @@ def register_callbacks(app):
             return [f'Saved all preference curves as {file_name}.npy', npy_files]
         else:
             # Return default values when the button hasn't been clicked
-            return ["", npy_files]  # Empty string for 'write_output.children', current npy_files for 'load_dropdown.options'
+            return "", npy_files  # Empty string for 'write_output.children', current npy_files for 'load_dropdown.options'
 
     return
