@@ -1,21 +1,11 @@
 import dash
 from dash import dcc, html, Input, Output, State
-from pages import app1, home, weight_table_app,final_dashboard
-from ObjFun import *
+from pages import app1, home, overview_tab,final_dashboard,stalemate_resolution
 from Calc_Sodo import *
-import numpy as np
 import glob
-import plotly.graph_objects as go
-import json
 import dash_bootstrap_components as dbc
+from pages.ga_optimization_run import *
 
-from ga_optimization_run import preferendus_go,setup_for_display,plot_polar_ppi
-from plotly.subplots import make_subplots
-from scipy.interpolate import pchip_interpolate
-from genetic_algorithm_pfm import GeneticAlgorithm
-
-
-from pages.ga_optimization_run import cons_ga
 
 decision_makers = dec_mak()
 objective_names = obj_names()
@@ -41,14 +31,18 @@ app321.title = "Multi-Page Dash App"
 app321.layout = html.Div([
     dcc.Location(id="url", refresh=False),
     dcc.Store(id="current-page", storage_type="memory"),
+
     html.Div([
-        dcc.Link("Home", href="/", style={'marginRight': '20px', 'textDecoration': 'none'}),
+        dcc.Link("Project Information", href="/", style={'marginRight': '20px', 'textDecoration': 'none'}),
         " | ",
-        dcc.Link("Preference", href="/preference",style={'marginRight': '20px', 'textDecoration': 'none'}),
+        dcc.Link("Preference & Weights", href="/preference",style={'marginRight': '20px', 'textDecoration': 'none'}),
         " | ",
-        dcc.Link("Weights", href="/weights",style={'marginRight': '20px', 'textDecoration': 'none'}),
+        dcc.Link("Overview", href="/overview",style={'marginRight': '20px', 'textDecoration': 'none'}),
         " | ",
-        dcc.Link("Dashboard", href="/dashboard",style={'marginRight': '20px', 'textDecoration': 'none'})
+        dcc.Link("Dashboard", href="/dashboard",style={'marginRight': '20px', 'textDecoration': 'none'}),
+        " | ",
+        dcc.Link("Stalemate Resolution", href="/stalemate_resolution", style={'marginRight': '20px', 'textDecoration': 'none'})
+
     ], style={'padding': '10px', 'fontSize': '20px', 'textAlign': 'center'}),
 
     html.Hr(),
@@ -64,15 +58,17 @@ app321.layout = html.Div([
 def display_page(pathname):
     if pathname == "/preference":
         return app1.preference_choice_layout,"/preference"
-    elif pathname == "/weights":
-        return weight_table_app.tableapp_layout,"/weights"
+    elif pathname == "/overview":
+        return overview_tab.overviewtab_layout,"/overview"
     elif pathname == "/dashboard":
         return final_dashboard.final_dashboard_layout,"/dashboard"
+    elif pathname == "/stalemate_resolution":
+        return stalemate_resolution.stalemate_layout,"/stalemate_resolution"
     else:
         return home.home_layout,'/home'  # Default is home page
 
 app1.register_callbacks(app321)
-weight_table_app.register_callbacks(app321)
+overview_tab.register_callbacks(app321)
 final_dashboard.register_callbacks(app321)
 
 # Run the app

@@ -1,6 +1,5 @@
 from Calc_Sodo import *
 import json
-from scipy.interpolate import pchip_interpolate
 from genetic_algorithm_pfm import GeneticAlgorithm
 import plotly.express as px
 import plotly.graph_objects as go
@@ -37,11 +36,11 @@ def objective(variables):
                 if objective == 'NPV':
                     func = -1 * obj_NPV_ga(x1, x2, x3, x4, x5, x6)
                 elif objective == 'Noise - Oss':
-                    func = obj_noise_disturbance_oss_ga(x1, x2, x3, x4, x5, x6)
+                    func = obj_noise_disturbance_oss_alt_ga(x1, x2, x3, x4, x5, x6)
                 elif objective == 'Noise - Den Bosch':
-                    func = obj_noise_disturbance_bosch_ga(x1, x2, x3, x4, x5, x6)
+                    func = obj_noise_disturbance_bosch_alt_ga(x1, x2, x3, x4, x5, x6)
                 elif objective == 'Bird Mortality':
-                    func = obj_bird_mortality_ga(x1, x2, x3, x4, x5, x6)
+                    func = obj_new_bird_mort_ga(x1, x2, x3, x4, x5, x6)
                 elif objective == 'Particle Pollution':
                     func = obj_particle_pollution_ga(x1, x2, x3, x4, x5, x6)
                 elif objective == 'Energy - Oss':
@@ -51,10 +50,9 @@ def objective(variables):
                 elif objective == 'Project Time':
                     func = obj_project_time_ga(x1, x2, x3, x4, x5, x6)
 
-                p_temp = pchip_interpolate(list(final_pref[i][objective][0]), list(final_pref[i][objective][1]),
-                                               func)
+                p_temp = np.interp(func, list(final_pref[i][objective][0]), list(final_pref[i][objective][1]))
                 pref_all_p.append(p_temp)
-
+    global final_weights
     # aggregate preference scores and return this to the GA
     return final_weights, pref_all_p
 
@@ -93,11 +91,11 @@ def preferendus_go(final_pref,objective,bounds,cons_ga):
                     if obj == 'NPV':
                         func = -obj_NPV(design_variables)
                     elif obj == 'Noise - Oss':
-                        func = obj_noise_disturbance_oss(design_variables)
+                        func = obj_noise_disturbance_oss_alt(design_variables)
                     elif obj == 'Noise - Den Bosch':
-                        func = obj_noise_disturbance_bosch(design_variables)
+                        func = obj_noise_disturbance_bosch_alt(design_variables)
                     elif obj == 'Bird Mortality':
-                        func = obj_bird_mortality(design_variables)
+                        func = obj_new_bird_mort(design_variables)
                     elif obj == 'Particle Pollution':
                         func = obj_particle_pollution(design_variables)
                     elif obj == 'Energy - Oss':
@@ -107,7 +105,7 @@ def preferendus_go(final_pref,objective,bounds,cons_ga):
                     elif obj == 'Project Time':
                         func = obj_project_time(design_variables)
 
-                    p_temp = pchip_interpolate(list(final_pref[b][obj][0]), list(final_pref[b][obj][1]), func)
+                    p_temp = np.interp(func,list(final_pref[b][obj][0]),list(final_pref[b][obj][1]))
                     pref_loop.append(p_temp)
                     pref_obj.append(func)
 
@@ -119,10 +117,6 @@ def preferendus_go(final_pref,objective,bounds,cons_ga):
         pref_array.append(pref_t)
         pref_loop = list()
         pref_obj = list()
-
-        # print(f'The objective values are then: NPV = {-round(obj_NPV(design_variables),2)}, noise = {round(obj_noise_disturbance(design_variables),2)}, bird mortality = {round(obj_bird_mortality(design_variables),2)},particle pollution = {round(obj_particle_pollution(design_variables),2)}')
-        # Back.YELLOW +
-        # print(Back.RESET + f'The overall preference is {a_fine_aggregator([w1,w2,w3,w4],[pref1,pref2,pref3,pref4])}')
 
 
     pref_f_list = pref_long_array[pref_array.index(max(pref_array))]
@@ -147,7 +141,7 @@ def setup_for_display(final_pref,objective_names,obj_val,pref_final_all):
     return labels,result_df
 
 
-def plot_polar_ppi(pref_scores, pref_names):
+def plot_polar_ppi(pref_scores, pref_names): #Need to make bar chart instead
     # Create DataFrame for polar plot data
     df = pd.DataFrame(dict(r=pref_scores, theta=pref_names))
 

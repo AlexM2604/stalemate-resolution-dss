@@ -69,7 +69,7 @@ tableapp_layout = html.Div([
 
     html.Button("Save Table Data", id="save_button_table", style={"marginTop": "50px", "display": "block", "margin": "auto"}),
 
-    html.Div(id="save_table_output", style={"textAlign": "center", "marginTop": "20px"}),
+    html.Div(id="save_table_output", style={"textAlign": "center", "marginTop": "20px"})
 ])
 
 def register_callbacks(app):

@@ -8,34 +8,54 @@ from ga_optimization_run import *
 import glob
 from dash.exceptions import PreventUpdate
 from pages.ga_optimization_run import objective_names
+import os
 
 decision_makers = dec_mak()
 npy_files = glob.glob("*.npy")
 json_files = glob.glob("*.json")
 objective_names = obj_names()
 
+def weight_save_name():
+    names_of_saves = {'Energy Provider':'EP','Local Residents - Oss':'LRO', 'Local Residents - Den Bosch':'LRDB', 'Ecologists':'ECO',
+                       'RIVM':'RIVM', 'Oss Municipality':'OM', 'Den Bosch Municipality':'DBM'}
+    return names_of_saves
+
+def get_initial_table():
+    save_names = weight_save_name()
+    all_the_weights = []
+    for a in save_names:
+        if os.path.exists(save_names[a] + '.json'):
+            with open(save_names[a] + '.json', "r") as file:
+                weight = json.load(file)
+                all_the_weights += weight
+    return all_the_weights
+
+save_names = weight_save_name()
+
 final_dashboard_layout = html.Div(children=[
+    dcc.Store(id = 'results_df',storage_type= 'session'),
+    dcc.Store(id = 'design_variant',storage_type= 'session'),
     html.H1(children='Optimization Run and Results Display'),
+    html.P('''
+                This section of the model allows to aggregate all preferences and weights of the decision-makers to produce a group-optimal
+                design variant. Here you will also be able to see how the group-optimal design variant performs in terms of preference for each decision-maker.
+                For more detail you can also inspect the scoring of the group-optimal alternative on each preference curve.
+                '''),
+    html.P('''
+                Press the "Run" button below to initiate the Preferendus and produce a group optimal design variant. 
+                Please note, it can take several minutes to produce a solution.
+
+                '''),
+    html.Div(children = [html.Img(src = 'assets/project_area_diagram_for_model.png', style={'height':'65%', 'width':'65%'})],style={"textAlign": "center"}),
 
     html.Div(children=[
-        html.Label('Load optimization files:'),
-        dcc.Dropdown(npy_files, id='final_load_npy_dropdown',
-                     style={"width": "200px", "display": "inline-block", "marginLeft": "10px"}),
-        dcc.Dropdown(json_files, id='final_load_json_dropdown',
-                     style={"width": "200px", "display": "inline-block", "marginLeft": "10px"}),
-        html.Button("Run", id="run_opt_button",
+        html.Button("Run", id="run_opt_button", n_clicks = 0,
                 style={"marginTop": "50px", "display": "block", "margin": "auto"}),
         dcc.Loading(  # Adds a spinner while loading
             id="loading-1",
             type="circle",  # Choose "default", "dot", or "circle"
             children=html.Div(id="opt_run_output"),style={'padding': '10px', 'fontSize': '20px', 'textAlign': 'center'}),
         #html.Div(id="opt_run_output", style={"textAlign": "center", "marginTop": "20px"})]),
-
-    html.Div(children='''
-
-        Insert description
-
-    '''),
 
     # html.Div(children= f'Optimal project configuration is Distance from city centre = {round(res[0], 2)} km, Number of turbines = {round(res[1], 2)}, Turbine height = {round(res[2], 2)} m',
     # style={'marginTop': 20}),
@@ -44,54 +64,52 @@ final_dashboard_layout = html.Div(children=[
     # style={'marginTop': 20}),
 
     dcc.Graph(
-        id='radial_preference_graph'),
+        id='bar_chart'),
 
     html.Div(children=[
         html.Label('Choose Objective:'),
         dcc.Dropdown(objective_names + ['All'], 'All', id='dropdown_choice_o'),
         html.Label('Choose Decision-Maker:'),
         dcc.Dropdown(decision_makers + ['All'], 'All', id='dropdown_choice_d'),  # Return and make dynamic
-        dcc.Graph(id='preference_plot_final')]),
-    html.Button('Reset Benchmark', id='reset_button', n_clicks=0, style={'marginTop': 20}),
-    html.Div(id='reset_output', style={'marginTop': 20}),
+        dcc.Graph(id='preference_plot_final')])
+])],style={'marginLeft': 100, 'marginRight': 100})
 
-    # Section for manual input of a benchmark
-    html.Div(children=[
-        html.Label('Benchmark value:'),
-        dcc.Input(id='manual_benchmark', type='number', value='', placeholder='Enter value'),
-        dcc.Dropdown(objective_names, objective_names[0], id='manual_dropdown', style={'marginTop': '20px'}),
-        html.Button('Set Benchmark', id='set_benchmark_button', n_clicks=0,
-                    style={'marginLeft': '10px', 'marginTop': '20px'}, ),
-        html.Div(id='manual_benchmark_output', style={'marginTop': 20})])])])
 
 def register_callbacks(app):
 
-    @app.callback(Output('radial_preference_graph', 'figure'),
-                     Output('opt_run_output', 'children'),
-                     Input('run_opt_button', 'n_clicks'),
-                     State('final_load_npy_dropdown', 'value'),
-                     State('final_load_json_dropdown', 'value'))
-    def opt_graph(n_clicks_radial, npy_file_name, json_file_name):
+    @app.callback(
+        Output('results_df','data'),
+        Output('design_variant', 'data'),
+        Input('run_opt_button', 'n_clicks'))
+
+    def opt_graph(n_clicks_radial):
 
         if not dash.callback_context.triggered:
             raise PreventUpdate
 
-        global result_df
-        global final_weights
-
         if n_clicks_radial > 0:
 
-            final_pref = np.load(npy_file_name, allow_pickle='TRUE').item()
+            final_pref = {}
+            for b in decision_makers:
+                pref = np.load(save_names[b] + '_' + 'final.npy', allow_pickle='TRUE').item()
+                final_pref[b] = pref
 
-            f = open(json_file_name, 'r')
-
-            f_loaded = json.load(f)
-
-            undivided = [i for i in f_loaded if i != 0]
-
-            final_weights = [x / (len(decision_makers)) for x in undivided]
-
-            # print(final_weights)
+            all_weights = get_initial_table()
+            final_weights = []
+            for d in all_weights:
+                for value in d.values():
+                    # Check if the value is a number (int or float) and not 0
+                    if isinstance(value, (int, float)) and value != 0:
+                        final_weights.append(value)
+                    # Check if the value is a string that represents a non-zero number
+                    elif isinstance(value, str):
+                        try:
+                            num = float(value)
+                            if num != 0:
+                                final_weights.append(num)
+                        except ValueError:
+                            pass
+            final_weights = [val / len(decision_makers) for val in final_weights]
 
             bounds, cons_ga = bounds_cons()
 
@@ -119,11 +137,11 @@ def register_callbacks(app):
                             if objective == 'NPV':
                                 func = -1 * obj_NPV_ga(x1, x2, x3, x4, x5, x6)
                             elif objective == 'Noise - Oss':
-                                func = obj_noise_disturbance_oss_ga(x1, x2, x3, x4, x5, x6)
+                                func = obj_noise_disturbance_oss_alt_ga(x1, x2, x3, x4, x5, x6)
                             elif objective == 'Noise - Den Bosch':
-                                func = obj_noise_disturbance_bosch_ga(x1, x2, x3, x4, x5, x6)
+                                func = obj_noise_disturbance_bosch_alt_ga(x1, x2, x3, x4, x5, x6)
                             elif objective == 'Bird Mortality':
-                                func = obj_bird_mortality_ga(x1, x2, x3, x4, x5, x6)
+                                func = obj_new_bird_mort_ga(x1, x2, x3, x4, x5, x6)
                             elif objective == 'Particle Pollution':
                                 func = obj_particle_pollution_ga(x1, x2, x3, x4, x5, x6)
                             elif objective == 'Energy - Oss':
@@ -133,9 +151,8 @@ def register_callbacks(app):
                             elif objective == 'Project Time':
                                 func = obj_project_time_ga(x1, x2, x3, x4, x5, x6)
 
-                            p_temp = pchip_interpolate(list(final_pref[i][objective][0]),
-                                                       list(final_pref[i][objective][1]),
-                                                       func)
+                            p_temp = np.interp(func, list(final_pref[i][objective][0]),
+                                               list(final_pref[i][objective][1]))
                             pref_all_p.append(p_temp)
 
                 # aggregate preference scores and return this to the GA
@@ -169,7 +186,7 @@ def register_callbacks(app):
 
                 # run the GA
                 for i in range(n_runs):
-                    score, design_variables, plot_array = ga.run()
+                    score, design_variables, plot_array = ga.run(verbose = False)
                     for b in final_pref:
                         for obj in objective_names:
                             if final_pref[b][obj] != None:
@@ -177,11 +194,11 @@ def register_callbacks(app):
                                 if obj == 'NPV':
                                     func = -obj_NPV(design_variables)
                                 elif obj == 'Noise - Oss':
-                                    func = obj_noise_disturbance_oss(design_variables)
+                                    func = obj_noise_disturbance_oss_alt(design_variables)
                                 elif obj == 'Noise - Den Bosch':
-                                    func = obj_noise_disturbance_bosch(design_variables)
+                                    func = obj_noise_disturbance_bosch_alt(design_variables)
                                 elif obj == 'Bird Mortality':
-                                    func = obj_bird_mortality(design_variables)
+                                    func = obj_new_bird_mort(design_variables)
                                 elif obj == 'Particle Pollution':
                                     func = obj_particle_pollution(design_variables)
                                 elif obj == 'Energy - Oss':
@@ -191,8 +208,7 @@ def register_callbacks(app):
                                 elif obj == 'Project Time':
                                     func = obj_project_time(design_variables)
 
-                                p_temp = pchip_interpolate(list(final_pref[b][obj][0]), list(final_pref[b][obj][1]),
-                                                           func)
+                                p_temp = np.interp(func, list(final_pref[b][obj][0]), list(final_pref[b][obj][1]))
                                 pref_loop.append(p_temp)
                                 pref_obj.append(func)
 
@@ -220,25 +236,51 @@ def register_callbacks(app):
             pref_final_all, res, obj_val = preferendus_go(final_pref, objective, bounds, cons_ga)
 
             labels, result_df = setup_for_display(final_pref, objective_names, obj_val, pref_final_all)
+            #figure_polar = plot_polar_ppi(pref_final_all[0], labels)
 
-            figure_polar = plot_polar_ppi(pref_final_all[0], labels)
 
-            return figure_polar, 'Optimization Performed'
+            return result_df.to_dict(),res
         return
 
     @app.callback(
         Output('preference_plot_final', 'figure'),
+        Output('bar_chart', 'figure'),
+        Output('opt_run_output', 'children'),
         Input('dropdown_choice_o', 'value'),
         Input('dropdown_choice_d', 'value'),
-        State('final_load_npy_dropdown', 'value')
+        Input('results_df','data'),
+        Input('design_variant', 'data')
     )
-    def plot_preference(obj_to_plot, dm_to_plot, npy_file_name):
+    def plot_preference(obj_to_plot, dm_to_plot,df_data,design_variant):
 
+        result_df = pd.DataFrame(df_data)
+        #print(result_df)
+        '''
         if not dash.callback_context.triggered:
             raise PreventUpdate
+        '''
+        figure_bar = go.Figure(
+            data=[go.Bar(
+                x=result_df.index.tolist(),
+                y=result_df['Preference Score'],
+                marker_color=['green' if score >= 0 else 'red' for score in result_df['Preference Score']],
+                marker_line=dict(
+                    color=['black' if abs(score) < 0.1 else 'rgba(0,0,0,0)'
+                           for score in result_df['Preference Score']],
+                    width=2),
+                name='Preference Scores'
+            )],
+            layout=go.Layout(
+                title='Preference Scores',
+                yaxis=dict(range=[-100, 100], title='Score'),
+                xaxis=dict(title='Objectives')
+            ))
 
+        final_pref = {}
+        for b in decision_makers:
+            pref = np.load(save_names[b] +'_' + 'final.npy', allow_pickle='TRUE').item()
+            final_pref[b] = pref
         n = 0
-        final_pref = np.load(npy_file_name, allow_pickle='TRUE').item()
         sub_titles = []
         for b in final_pref:
             if b == dm_to_plot or dm_to_plot == 'All':
@@ -277,7 +319,9 @@ def register_callbacks(app):
             height=total_height,
             title="Preference Plot",
             showlegend=False)
-        return fig_p
+        res = design_variant
+        text = f'Optimization performed, the group optimal solution is as follows: the Oss wind park located {round(res[0], 2)} km away from Oss with {res[2]} wind turbine(s) of hub height {round(res[4], 2)} m. The s-Hergoenbosch wind park located {round(res[1], 2)} km away from s-Hergoenbosch with {res[3]} wind turbines of hub height {round(res[5], 2)} m.'
+        return fig_p,figure_bar,text
 
         return
 

@@ -4,7 +4,7 @@ import math
 #CONSTANTS
 rho = 1.224 # kg/m^3 - air density
 e = 0.3 # efficiency
-EP = 0.06 # price of electricity per kWh
+EP = 0.059 # price of electricity per kWh
 L_w = 104 # dB - example sound power level of a turbine
 wind_base_speed = 3 # m/s
 height_base = 50 # m
@@ -246,6 +246,116 @@ def obj_bird_mortality(variables):
     
     return mortality
 
+
+def obj_new_bird_mort(variables):
+    x1 = variables[0]  # Distance to city centre (Oss)
+    x2 = variables[1]  # Distance to Den Bosch
+    x3 = variables[2]  # Number of turbines Oss
+    x4 = variables[3]  # Number of turbines Den Bosch
+    x5 = variables[4]  # Turbine hub height Oss
+    x6 = variables[5]  # Turbine hub height Den Bosch
+
+    global wind_oss
+    global wind_bosch
+
+    if x5 >= 50 and x5 <= 75:
+        wind_oss = 6.97
+    elif x5 > 75 and x5 <= 125:
+        wind_oss = 8.16
+    elif x5 > 125:
+        wind_oss = 9.3
+
+    if x6 >= 50 and x6 <= 75:
+        wind_bosch = 6.97
+    elif x6 > 75 and x6 <= 125:
+        wind_bosch = 8.16
+    elif x6 > 125:
+        wind_bosch = 9.3
+
+    split_oss = 0.155
+    split_bosch = 0.155
+    if x2 >= 3 and x2 <= 5:
+        split_bosch = 0.62
+
+    D_oss = x5 * 1.3  # Blade Diameter Oss
+    A_oss = (math.pi) * ((D_oss / 2) ** 2)  # Swept area of wind turbine blades Oss
+    P_oss = 0.5 * A_oss * rho * e * (wind_oss ** 3)  # Power capacity per turbine (W) - Oss
+    P_dt_oss = P_oss * 24 / 1000  # Converting to kWh per day
+    R_oss = (x5 + wind_oss) / 12  # Resistance factor for energy efficiency calculation
+
+    farm_capacity_oss = (P_oss * x3) / 1_000_000  # in MW
+
+    D_bosch = x6 * 1.3  # Blade Diameter Den Bosch
+    A_bosch = (math.pi) * ((D_bosch / 2) ** 2)  # Swept area of wind turbine blades Den Bosch
+    P_bosch = 0.5 * A_bosch * rho * e * (wind_bosch ** 3)  # Power capacity per turbine (W) - Den Bosch
+    P_dt_bosch = P_bosch * 24 / 1000  # Converting to kWh per day
+    R_bosch = (x6 + wind_bosch) / 12  # Resistance factor for energy efficiency calculation
+
+    farm_capacity_bosch = (P_bosch * x4) / 1_000_000  # in MW
+
+    mortality_oss = farm_capacity_oss * cap_fact * 365 * 24 * 0.001 * split_oss
+
+    mortality_bosch = farm_capacity_bosch * cap_fact * 365 * 24 * 0.001 * split_bosch
+
+    mortality = mortality_oss + mortality_bosch
+
+    return mortality
+
+
+def obj_new_bird_mort_max(variables):
+    x1 = variables[0]  # Distance to city centre (Oss)
+    x2 = variables[1]  # Distance to Den Bosch
+    x3 = variables[2]  # Number of turbines Oss
+    x4 = variables[3]  # Number of turbines Den Bosch
+    x5 = variables[4]  # Turbine hub height Oss
+    x6 = variables[5]  # Turbine hub height Den Bosch
+
+    global wind_oss
+    global wind_bosch
+
+    if x5 >= 50 and x5 <= 75:
+        wind_oss = 6.97
+    elif x5 > 75 and x5 <= 125:
+        wind_oss = 8.16
+    elif x5 > 125:
+        wind_oss = 9.3
+
+    if x6 >= 50 and x6 <= 75:
+        wind_bosch = 6.97
+    elif x6 > 75 and x6 <= 125:
+        wind_bosch = 8.16
+    elif x6 > 125:
+        wind_bosch = 9.3
+
+    split_oss = 0.155
+    split_bosch = 0.155
+    if x2 >= 3 and x2 <= 5:
+        split_bosch = 0.62
+
+    D_oss = x5 * 1.3  # Blade Diameter Oss
+    A_oss = (math.pi) * ((D_oss / 2) ** 2)  # Swept area of wind turbine blades Oss
+    P_oss = 0.5 * A_oss * rho * e * (wind_oss ** 3)  # Power capacity per turbine (W) - Oss
+    P_dt_oss = P_oss * 24 / 1000  # Converting to kWh per day
+    R_oss = (x5 + wind_oss) / 12  # Resistance factor for energy efficiency calculation
+
+    farm_capacity_oss = (P_oss * x3) / 1_000_000  # in MW
+
+    D_bosch = x6 * 1.3  # Blade Diameter Den Bosch
+    A_bosch = (math.pi) * ((D_bosch / 2) ** 2)  # Swept area of wind turbine blades Den Bosch
+    P_bosch = 0.5 * A_bosch * rho * e * (wind_bosch ** 3)  # Power capacity per turbine (W) - Den Bosch
+    P_dt_bosch = P_bosch * 24 / 1000  # Converting to kWh per day
+    R_bosch = (x6 + wind_bosch) / 12  # Resistance factor for energy efficiency calculation
+
+    farm_capacity_bosch = (P_bosch * x4) / 1_000_000  # in MW
+
+    mortality_oss = farm_capacity_oss * cap_fact * 365 * 24 * 0.001 * split_oss
+
+    mortality_bosch = farm_capacity_bosch * cap_fact * 365 * 24 * 0.001 * split_bosch
+
+    mortality = mortality_oss + mortality_bosch
+
+    return -mortality
+
 def obj_particle_pollution(variables):
 
     x1 = variables[0] # Distance to city centre (Oss)
@@ -309,8 +419,9 @@ def obj_energy_oss(variables):
     profit_d_oss = (P_dt_oss * EP * x3) - (R_oss*x1) #daily
 
     farm_capacity_oss = (P_oss * x3) / 1_000_000 # in MW
+    farm_capacity_oss_gwh = farm_capacity_oss * 365 * 24 * cap_fact * 0.001
 
-    return -farm_capacity_oss
+    return -farm_capacity_oss_gwh
 
 def obj_energy_bosch(variables):
     
@@ -340,7 +451,9 @@ def obj_energy_bosch(variables):
 
     farm_capacity_bosch = (P_bosch * x4) / 1_000_000 # in MW
 
-    return -farm_capacity_bosch
+    farm_capacity_bosch_gwh = farm_capacity_bosch * 365 * 24 * cap_fact * 0.001  # GWh per year adjusted with capacity factor
+
+    return -farm_capacity_bosch_gwh
     
 def obj_noise_disturbance_max_oss(variables):
     
@@ -492,7 +605,9 @@ def obj_energy_oss_max(variables):
 
     farm_capacity_oss = (P_oss * x3) / 1_000_000 # in MW
 
-    return farm_capacity_oss
+    farm_capacity_oss_gwh = farm_capacity_oss * 365 * 24 * cap_fact * 0.001
+
+    return farm_capacity_oss_gwh
 
 def obj_energy_bosch_max(variables):
     
@@ -522,7 +637,9 @@ def obj_energy_bosch_max(variables):
 
     farm_capacity_bosch = (P_bosch * x4) / 1_000_000 # in MW
 
-    return farm_capacity_bosch
+    farm_capacity_bosch_gwh = farm_capacity_bosch * 365 * 24 * cap_fact * 0.001  # GWh per year adjusted with capacity factor
+
+    return farm_capacity_bosch_gwh
 
 def obj_project_time(variables):
     
@@ -623,7 +740,7 @@ def obj_project_time_max(variables):
         project_time = 11.8
     return -project_time
 
-# Objectives:
+# Objectives GA:
 
 def mort_height_ga(inp):
     
@@ -634,6 +751,17 @@ def mort_height_ga(inp):
     else:
         factor = 200
         
+    return factor
+
+
+def mort_dist_ga_new(inp):
+    factor = None
+
+    if inp > 3 and inp < 5:
+        factor = 0.62
+    else:
+        factor = 0.155
+
     return factor
 
 def wind_speed_height_ga(inp):
@@ -768,7 +896,9 @@ def obj_energy_oss_ga(x1,x2,x3,x4,x5,x6):
 
     farm_capacity_oss = (P_oss * x3) / 1_000_000 # in MW
 
-    return -farm_capacity_oss
+    farm_capacity_oss_gwh = farm_capacity_oss * 365 * 24 * cap_fact * 0.001
+
+    return -farm_capacity_oss_gwh
 
 def obj_energy_bosch_ga(x1,x2,x3,x4,x5,x6):
     
@@ -782,6 +912,8 @@ def obj_energy_bosch_ga(x1,x2,x3,x4,x5,x6):
     profit_d_bosch = (P_dt_bosch * EP * x4) - (R_bosch*x2) #daily
 
     farm_capacity_bosch = (P_bosch * x4) / 1_000_000 # in MW
+
+    farm_capacity_bosch_gwh = farm_capacity_bosch * 365 * 24 * cap_fact * 0.001
 
     return -farm_capacity_bosch
 
@@ -808,3 +940,183 @@ def obj_project_time_ga(x1,x2,x3,x4,x5,x6):
     project_time = np.array([project_time_cond_ga(i) for i in farm_capacity_all])
     
     return project_time
+
+#Recently added objectives
+
+def obj_noise_disturbance_oss_alt(variables):
+    x1 = variables[0]  # Distance to city centre (Oss)
+    x2 = variables[1]  # Distance to Den Bosch
+    x3 = variables[2]  # Number of turbines Oss
+    x4 = variables[3]  # Number of turbines Den Bosch
+    x5 = variables[4]  # Turbine hub height Oss
+    x6 = variables[5]  # Turbine hub height Den Bosch
+
+    if x5 >= 50 and x5 <= 75:
+        wind_oss = 6.97
+    elif x5 > 75 and x5 <= 125:
+        wind_oss = 8.16
+    elif x5 > 125:
+        wind_oss = 9.3
+
+    wind_adj = (wind_oss - wind_base_speed) * 0.2  # Increase in noise with the wind
+    height_adj = (x5 - height_base) * 0.1  # Increase in noise with height
+
+    SPL_single = (pow(10, ((L_w) / 10)))  # single turbine
+
+    SPL_all = 10 * (np.log10(x3 * SPL_single))  # SPL from all turbines
+
+    SPL_distance = SPL_all + wind_adj + height_adj - (
+                20 * np.log10((x1 * 1000) / 1))  # sound pressure level at distance
+
+    return SPL_distance
+
+
+def obj_noise_disturbance_oss_alt_max(variables):
+    x1 = variables[0]  # Distance to city centre (Oss)
+    x2 = variables[1]  # Distance to Den Bosch
+    x3 = variables[2]  # Number of turbines Oss
+    x4 = variables[3]  # Number of turbines Den Bosch
+    x5 = variables[4]  # Turbine hub height Oss
+    x6 = variables[5]  # Turbine hub height Den Bosch
+
+    if x5 >= 50 and x5 <= 75:
+        wind_oss = 6.97
+    elif x5 > 75 and x5 <= 125:
+        wind_oss = 8.16
+    elif x5 > 125:
+        wind_oss = 9.3
+
+    wind_adj = (wind_oss - wind_base_speed) * 0.2  # Increase in noise with the wind
+    height_adj = (x5 - height_base) * 0.1  # Increase in noise with height
+
+    SPL_single = (pow(10, ((L_w) / 10)))  # single turbine
+
+    SPL_all = 10 * (np.log10(x3 * SPL_single))  # SPL from all turbines
+
+    SPL_distance = SPL_all + wind_adj + height_adj - (
+                20 * np.log10((x1 * 1000) / 1))  # sound pressure level at distance
+
+    return -SPL_distance
+
+
+def obj_noise_disturbance_bosch_alt(variables):
+    x1 = variables[0]  # Distance to city centre (Oss)
+    x2 = variables[1]  # Distance to Den Bosch
+    x3 = variables[2]  # Number of turbines Oss
+    x4 = variables[3]  # Number of turbines Den Bosch
+    x5 = variables[4]  # Turbine hub height Oss
+    x6 = variables[5]  # Turbine hub height Den Bosch
+
+    if x6 >= 50 and x6 <= 75:
+        wind_bosch = 6.97
+    elif x6 > 75 and x6 <= 125:
+        wind_bosch = 8.16
+    elif x6 > 125:
+        wind_bosch = 9.3
+
+    wind_adj = (wind_bosch - wind_base_speed) * 0.2  # Increase in noise with the wind
+    height_adj = (x6 - height_base) * 0.1  # Increase in noise with height
+
+    SPL_single = (pow(10, ((L_w) / 10)))  # single turbine
+
+    SPL_all = 10 * (np.log10(x4 * SPL_single))  # SPL from all turbines
+
+    SPL_distance = SPL_all + wind_adj + height_adj - (
+                20 * np.log10((x2 * 1000) / 1))  # sound pressure level at distance
+
+    return SPL_distance
+
+
+def obj_noise_disturbance_bosch_alt_max(variables):
+    x1 = variables[0]  # Distance to city centre (Oss)
+    x2 = variables[1]  # Distance to Den Bosch
+    x3 = variables[2]  # Number of turbines Oss
+    x4 = variables[3]  # Number of turbines Den Bosch
+    x5 = variables[4]  # Turbine hub height Oss
+    x6 = variables[5]  # Turbine hub height Den Bosch
+
+    if x6 >= 50 and x6 <= 75:
+        wind_bosch = 6.97
+    elif x6 > 75 and x6 <= 125:
+        wind_bosch = 8.16
+    elif x6 > 125:
+        wind_bosch = 9.3
+
+    wind_adj = (wind_bosch - wind_base_speed) * 0.2  # Increase in noise with the wind
+    height_adj = (x6 - height_base) * 0.1  # Increase in noise with height
+
+    SPL_single = (pow(10, ((L_w) / 10)))  # single turbine
+
+    SPL_all = 10 * (np.log10(x4 * SPL_single))  # SPL from all turbines
+
+    SPL_distance = SPL_all + wind_adj + height_adj - (
+                20 * np.log10((x2 * 1000) / 1))  # sound pressure level at distance
+
+    return -SPL_distance
+
+
+def obj_noise_disturbance_oss_alt_ga(x1, x2, x3, x4, x5, x6):
+    wind_oss = np.array([wind_speed_height_ga(i) for i in x5])
+
+    wind_adj = (wind_oss - wind_base_speed) * 0.2  # Increase in noise with the wind
+    height_adj = (x5 - height_base) * 0.1  # Increase in noise with height
+
+    SPL_single = (pow(10, ((L_w) / 10)))  # single turbine
+
+    SPL_all = 10 * (np.log10(x3 * SPL_single))  # SPL from all turbines
+
+    SPL_distance = SPL_all + wind_adj + height_adj - (
+                20 * np.log10((x1 * 1000) / 1))  # sound pressure level at distance
+
+    return SPL_distance
+
+
+def obj_noise_disturbance_bosch_alt_ga(x1, x2, x3, x4, x5, x6):
+    wind_bosch = np.array([wind_speed_height_ga(i) for i in x6])
+
+    wind_adj = (wind_bosch - wind_base_speed) * 0.2  # Increase in noise with the wind
+    height_adj = (x6 - height_base) * 0.1  # Increase in noise with height
+
+    SPL_single = (pow(10, ((L_w) / 10)))  # single turbine
+
+    SPL_all = 10 * (np.log10(x4 * SPL_single))  # SPL from all turbines
+
+    SPL_distance = SPL_all + wind_adj + height_adj - (
+                20 * np.log10((x2 * 1000) / 1))  # sound pressure level at distance
+
+    return SPL_distance
+
+
+def obj_new_bird_mort_ga(x1, x2, x3, x4, x5, x6):
+    global wind_oss
+    global wind_bosch
+
+    split_oss = 0.155
+    split_bosch = np.array([mort_dist_ga_new(i) for i in x1])
+
+    wind_oss = np.array([wind_speed_height_ga(i) for i in x5])
+    wind_bosch = np.array([wind_speed_height_ga(i) for i in x6])
+
+    D_oss = x5 * 1.3  # Blade Diameter Oss
+    A_oss = (math.pi) * ((D_oss / 2) ** 2)  # Swept area of wind turbine blades Oss
+    P_oss = 0.5 * A_oss * rho * e * (wind_oss ** 3)  # Power capacity per turbine (W) - Oss
+    P_dt_oss = P_oss * 24 / 1000  # Converting to kWh per day
+    R_oss = (x5 + wind_oss) / 12  # Resistance factor for energy efficiency calculation
+
+    farm_capacity_oss = (P_oss * x3) / 1_000_000  # in MW
+
+    D_bosch = x6 * 1.3  # Blade Diameter Den Bosch
+    A_bosch = (math.pi) * ((D_bosch / 2) ** 2)  # Swept area of wind turbine blades Den Bosch
+    P_bosch = 0.5 * A_bosch * rho * e * (wind_bosch ** 3)  # Power capacity per turbine (W) - Den Bosch
+    P_dt_bosch = P_bosch * 24 / 1000  # Converting to kWh per day
+    R_bosch = (x6 + wind_bosch) / 12  # Resistance factor for energy efficiency calculation
+
+    farm_capacity_bosch = (P_bosch * x4) / 1_000_000  # in MW
+
+    mortality_oss = farm_capacity_oss * cap_fact * 365 * 24 * 0.001 * split_oss
+
+    mortality_bosch = farm_capacity_bosch * cap_fact * 365 * 24 * 0.001 * split_bosch
+
+    mortality = mortality_oss + mortality_bosch
+
+    return mortality
